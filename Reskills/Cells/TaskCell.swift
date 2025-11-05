@@ -33,12 +33,10 @@ final class TaskCell: UITableViewCell {
         statusImageView.contentMode = .scaleAspectFit
         statusImageView.tintColor = .tertiaryLabel
         
-        titleLabel.text = "Test title"
         titleLabel.font = .preferredFont(forTextStyle: .body)
         titleLabel.textColor = .label
         titleLabel.numberOfLines = 0
         
-        subtitleLabel.text = "Test subtitle"
         subtitleLabel.font = .preferredFont(forTextStyle: .subheadline)
         subtitleLabel.textColor = .label
         subtitleLabel.numberOfLines = 0
@@ -49,17 +47,37 @@ final class TaskCell: UITableViewCell {
         textStack.addArrangedSubview(titleLabel)
         textStack.addArrangedSubview(subtitleLabel)
         
-        contentView.addSubview(textStack)
+        container.axis = .horizontal
+        container.alignment = .center
+        container.spacing = 12
+        container.distribution = .fill
+        container.addArrangedSubview(statusImageView)
+        container.addArrangedSubview(textStack)
+        
+        contentView.addSubview(container)
     }
     
     private func setupLayout() {
-        textStack.translatesAutoresizingMaskIntoConstraints = false
+        container.translatesAutoresizingMaskIntoConstraints = false
+        statusImageView.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
-            textStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            textStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            textStack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
-            textStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8)
+            container.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            container.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            container.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
+            container.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
+            
+            statusImageView.widthAnchor.constraint(equalToConstant: 24),
+            statusImageView.heightAnchor.constraint(equalToConstant: 24)
         ])
+    }
+    
+    func configure(title: String, subtitle: String?, isCompleted: Bool) {
+        titleLabel.text = title
+        subtitleLabel.text = subtitle
+        
+        let symbolName = isCompleted ? "checkmark.circle" : "circle"
+        statusImageView.image = UIImage(systemName: symbolName)
+        statusImageView.tintColor = isCompleted ? .green : .tertiaryLabel
     }
 }
