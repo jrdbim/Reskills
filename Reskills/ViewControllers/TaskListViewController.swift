@@ -13,6 +13,27 @@ class TaskListViewController: UIViewController {
     private let tasksTableView = UITableView()
     private var tasks: [TaskModel] = []
     
+    private let emptyStateView: UIStackView = {
+        let title = UILabel()
+        title.text = "No Tasks"
+        title.font = .preferredFont(forTextStyle: .largeTitle)
+        title.textAlignment = .center
+        title.textColor = .secondaryLabel
+        
+        let subtitle = UILabel()
+        subtitle.text = "Tap + to add your First Task"
+        subtitle.font = .preferredFont(forTextStyle: .body)
+        subtitle.textAlignment = .center
+        subtitle.textColor = .secondaryLabel
+        
+        let stackView = UIStackView(arrangedSubviews: [title, subtitle])
+        stackView.axis = .vertical
+        stackView.alignment = .center
+        stackView.spacing = 8
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        return stackView
+    }()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
@@ -31,12 +52,16 @@ class TaskListViewController: UIViewController {
         tasksTableView.register(TaskCell.self, forCellReuseIdentifier: TaskCell.reuseID)
         tasksTableView.separatorStyle = .none
         view.addSubview(tasksTableView)
+        view.addSubview(emptyStateView)
 
         NSLayoutConstraint.activate([
             tasksTableView.topAnchor.constraint(equalTo: view.topAnchor),
             tasksTableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             tasksTableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            tasksTableView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+            tasksTableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            
+            emptyStateView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            emptyStateView.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
         
         tasks = [
@@ -50,7 +75,15 @@ class TaskListViewController: UIViewController {
                       notes: nil,
                       isCompleted: false)
         ]
+        
+        checkEmptyState()
         tasksTableView.reloadData()
+    }
+    
+    private func checkEmptyState() {
+        let isEmpty =  tasks.isEmpty
+        tasksTableView.isHidden = isEmpty
+        emptyStateView.isHidden = !isEmpty
     }
     
     @objc private func addTask() {
@@ -78,6 +111,15 @@ extension TaskListViewController: UITableViewDataSource {
         cell.selectionStyle = .none
         return cell
     }
+    
+    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            self.tasks.remove(at: indexPath.row)
+            tableView.deleteRows(at: [indexPath], with: .none)
+            checkEmptyState()
+        }
+    }
+    
 }
 
 extension TaskListViewController: UITableViewDelegate {
