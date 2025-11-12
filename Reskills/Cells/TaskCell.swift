@@ -9,7 +9,7 @@ import UIKit
 
 final class TaskCell: UITableViewCell {
     
-    static let reuseID = "TaskCell"
+    static let identifier = "TaskCell"
     
     private let statusImageView = UIImageView()
     private let titleLabel = UILabel()
