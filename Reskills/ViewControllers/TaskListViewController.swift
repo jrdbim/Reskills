@@ -9,7 +9,6 @@ import UIKit
 
 class TaskListViewController: UIViewController {
     
-    private let testLabel = UILabel()
     private let tasksTableView = UITableView()
     private var tasks: [TaskModel] = []
     
@@ -39,7 +38,6 @@ class TaskListViewController: UIViewController {
         view.backgroundColor = .systemBackground
         
         navigationItem.title = "Tasks"
-        navigationItem.largeTitleDisplayMode = .always
         let addButton = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addTask))
         let searchButton = UIBarButtonItem(barButtonSystemItem: .search, target: self, action: #selector(searchButton))
         navigationItem.rightBarButtonItems = [addButton, searchButton]
@@ -49,7 +47,7 @@ class TaskListViewController: UIViewController {
         tasksTableView.translatesAutoresizingMaskIntoConstraints = false
         tasksTableView.estimatedRowHeight = 72
         tasksTableView.rowHeight = UITableView.automaticDimension
-        tasksTableView.register(TaskCell.self, forCellReuseIdentifier: TaskCell.reuseID)
+        tasksTableView.register(TaskCell.self, forCellReuseIdentifier: TaskCell.identifier)
         tasksTableView.separatorStyle = .none
         view.addSubview(tasksTableView)
         view.addSubview(emptyStateView)
@@ -87,7 +85,10 @@ class TaskListViewController: UIViewController {
     }
     
     @objc private func addTask() {
-        
+        let vc = AddTaskViewController()
+        let nav = UINavigationController(rootViewController: vc)
+        nav.modalPresentationStyle = .pageSheet
+        self.present(nav, animated: true)
     }
     
     @objc private func searchButton() {
@@ -102,7 +103,7 @@ extension TaskListViewController: UITableViewDataSource {
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: TaskCell.reuseID, for: indexPath) as? TaskCell else {
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: TaskCell.identifier, for: indexPath) as? TaskCell else {
             return UITableViewCell()
         }
         let item = tasks[indexPath.row]
