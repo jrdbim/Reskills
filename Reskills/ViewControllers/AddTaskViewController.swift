@@ -21,6 +21,14 @@ class AddTaskViewController: UIViewController {
     
     private var isDateOn = false
     private var isTimeOn = false
+    private var isDateExpanded = false
+    private var isTimeExpanded = false
+    private var isFromSelectedRow = false
+    private var mode: Mode = .date
+    var taskModel = TaskModel(title: "Test")
+    var dateSelected: Date = Date()
+    var timeSelected: Date = Date()
+    var selectedDateTime: Date = Date()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -38,7 +46,9 @@ class AddTaskViewController: UIViewController {
         
         tableView.dataSource = self
         tableView.delegate = self
+        tableView.estimatedRowHeight = 70
         tableView.rowHeight = UITableView.automaticDimension
+        
         tableView.register(TextFieldCell.self, forCellReuseIdentifier: TextFieldCell.identifier)
         tableView.register(SwitchRowCell.self, forCellReuseIdentifier: SwitchRowCell.identifier)
         tableView.translatesAutoresizingMaskIntoConstraints = false
@@ -63,6 +73,7 @@ class AddTaskViewController: UIViewController {
     }
     
     @objc private func doneTapped() {
+        print(combineDateTime(date: dateSelected, time: timeSelected))
         dismiss(animated: true)
     }
     
@@ -122,15 +133,6 @@ extension AddTaskViewController: UITableViewDataSource, UITableViewDelegate {
         return UITableViewCell()
     }
     
-    func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
-        if indexPath.section == 1 {
-            cell.separatorInset = UIEdgeInsets(top: 0, left: .greatestFiniteMagnitude, bottom: 0, right: 0)
-            if isDateOn {
-                cell.separatorInset = UIEdgeInsets(top: 0, left: 20, bottom: 0, right: 18)
-            }
-        }
-    }
-    
     private func setSectionHeader(title: String) -> UIView {
         let containerView = UIView()
         let label = UILabel()
@@ -151,15 +153,101 @@ extension AddTaskViewController: UITableViewDataSource, UITableViewDelegate {
     private func dateTimeSection(cell: SwitchRowCell, indexPath: IndexPath) {
         switch indexPath.row {
         case 0:
-            cell.configure(icon: "calendar", title: "Date", isOn: isDateOn, showsSeparator: true)
-            cell.setExpanded(isDateOn, animated: true)
-            cell.onToggleChanged = { [weak self] isOn in
+            cell.configure(icon: "calendar", title: "Date", isOn: isDateOn, mode: .date, selectedDate: self.dateSelected)
+            let shouldExpandDate = isDateOn && isDateExpanded && !isTimeExpanded
+            cell.setExpanded(shouldExpandDate)
+            cell.onToggleChanged = { [weak self] isOn, selectedDateTime in
                 guard let self = self else { return }
                 self.isDateOn = isOn
-                self.tableView.reloadRows(at: [IndexPath(row: 0, section: 1)], with: .automatic)
+                self.isDateExpanded = isOn
+                self.selectedDateTime = selectedDateTime
+                if !isOn {
+                    self.dateSelected = Date()
+                    self.timeSelected = Date()
+                    if self.isTimeOn {
+                        self.isTimeOn = false
+                        self.isTimeExpanded = false
+                    }
+                }
+                self.tableView.reloadRows(at: [IndexPath(row: 0, section: 1), IndexPath(row: 1, section: 1)], with: .automatic)
+            }
+            cell.onDateTimeChanged = { [weak self] selectedDateTime in
+                guard let self = self else { return }
+                self.dateSelected = selectedDateTime
             }
         case 1:
-            cell.configure(icon: "clock", title: "Time", isOn: false)
+            cell.configure(icon: "clock", title: "Time", isOn: isTimeOn, mode: .time, selectedDate: timeSelected)
+            let shouldExpandTime = isTimeOn && isTimeExpanded && !isDateExpanded
+            cell.setExpanded(shouldExpandTime)
+            cell.onToggleChanged = { [weak self] isOn, selectedDateTime in
+                guard let self = self else { return }
+                self.isTimeOn = isOn
+                self.timeSelected = Date()
+                self.selectedDateTime = selectedDateTime
+                if isOn && !isDateOn {
+                    self.isDateOn = true
+                    self.dateSelected = Date()
+                    self.isTimeExpanded = true
+                    self.isDateExpanded = false
+                    self.tableView.reloadRows(at: [IndexPath(row: 0, section: 1)], with: .automatic)
+                } else if isOn {
+                    self.isDateOn = true
+                    self.isTimeExpanded = true
+                    self.isDateExpanded = false
+                    self.tableView.reloadRows(at: [IndexPath(row: 0, section: 1)], with: .automatic)
+                } else {
+                    self.isTimeExpanded = false
+                }
+                self.tableView.reloadRows(at: [IndexPath(row: 1, section: 1)], with: .automatic)
+            }
+            cell.onDateTimeChanged = { [weak self] selectedDateTime in
+                guard let self = self else { return }
+                self.timeSelected = selectedDateTime
+            }
+        default:
+            break
+        }
+    }
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        guard indexPath.section == 1 else { return }
+        switch indexPath.row {
+        case 0: // Date
+            guard isDateOn else { return }
+            
+            if isTimeOn && isTimeExpanded {
+                isTimeExpanded = false
+                isDateExpanded = true
+            } else {
+                isDateExpanded.toggle()
+            }
+            tableView.beginUpdates()
+            if let dateCell = tableView.cellForRow(at: IndexPath(row: 0, section: 1)) as? SwitchRowCell {
+                self.dateSelected = dateCell.selectedDate
+                dateCell.setExpanded(isDateExpanded)
+            }
+            if let timeCell = tableView.cellForRow(at: IndexPath(row: 1, section: 1)) as? SwitchRowCell {
+                self.timeSelected = timeCell.selectedTime
+                timeCell.setExpanded(isTimeExpanded)
+            }
+            tableView.endUpdates()
+        case 1: // Time
+            guard isTimeOn else { return }
+            
+            if isDateExpanded {
+                isDateExpanded.toggle()
+            }
+            isTimeExpanded.toggle()
+            tableView.beginUpdates()
+            if let dateCell = tableView.cellForRow(at: IndexPath(row: 0, section: 1)) as? SwitchRowCell {
+                self.dateSelected = dateCell.selectedDate
+                dateCell.setExpanded(isDateExpanded)
+            }
+            if let timeCell = tableView.cellForRow(at: IndexPath(row: 1, section: 1)) as? SwitchRowCell {
+                self.timeSelected = timeCell.selectedTime
+                timeCell.setExpanded(isTimeExpanded)
+            }
+            tableView.endUpdates()
         default:
             break
         }

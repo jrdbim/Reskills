@@ -1,23 +1,35 @@
 import UIKit
 
+enum Mode {
+    case date
+    case time
+}
+
 final class SwitchRowCell: UITableViewCell {
-    
     static let identifier = "SwitchRowCell"
+    
+    private var mode: Mode = .date
+    
+    let headerStackView = UIStackView()
     let iconView = UIImageView()
     let titleLabel = UILabel()
+    let subtitleLabel = UILabel()
     let toggle = UISwitch()
+    let containerView = UIView()
     private let separator = UIView()
-    private let expandedContainer = UIView()
-    private let datePicker: UIDatePicker = {
+    private let dateTimePicker: UIDatePicker = {
         let dp = UIDatePicker()
-        dp.datePickerMode = .date
-        dp.preferredDatePickerStyle = .inline
         dp.translatesAutoresizingMaskIntoConstraints = false
+        dp.locale = Locale(identifier: "en_GB")
         return dp
     }()
-    private var collapsedExpandedHeightConstraint: NSLayoutConstraint!
     
-    var onToggleChanged: ((Bool) -> Void)?
+    var selectedDate: Date = Date()
+    var selectedTime: Date = Date()
+    var onToggleChanged: ((Bool, Date) -> Void)?
+    var onDateTimeChanged: ((Date) -> Void)?
+    
+    var dateTimePickerHeight: NSLayoutConstraint?
     
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -36,6 +48,9 @@ final class SwitchRowCell: UITableViewCell {
     private func setupView() {
         selectionStyle = .none
         
+        containerView.backgroundColor = .clear
+        containerView.translatesAutoresizingMaskIntoConstraints = false
+        
         iconView.translatesAutoresizingMaskIntoConstraints = false
         iconView.contentMode = .scaleAspectFit
         iconView.tintColor = .secondaryLabel
@@ -45,88 +60,122 @@ final class SwitchRowCell: UITableViewCell {
         titleLabel.font = .preferredFont(forTextStyle: .body)
         titleLabel.textColor = .label
         
+        subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        subtitleLabel.font = .preferredFont(forTextStyle: .subheadline)
+        subtitleLabel.textColor = .systemBlue
+        subtitleLabel.numberOfLines = 0
+        subtitleLabel.lineBreakMode = .byWordWrapping
+        subtitleLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        subtitleLabel.setContentCompressionResistancePriority(.required, for: .vertical)
+        
+        headerStackView.axis = .vertical
+        headerStackView.distribution = .fill
+        headerStackView.alignment = .fill
+        headerStackView.spacing = 2
+        headerStackView.translatesAutoresizingMaskIntoConstraints = false
+        headerStackView.addArrangedSubview(titleLabel)
+        headerStackView.addArrangedSubview(subtitleLabel)
+        
         toggle.translatesAutoresizingMaskIntoConstraints = false
         toggle.addTarget(self, action: #selector(toggleChanged(_:)), for: .valueChanged)
         
         separator.translatesAutoresizingMaskIntoConstraints = false
         separator.backgroundColor = .separator
-        separator.isHidden = true
         
-        expandedContainer.translatesAutoresizingMaskIntoConstraints = false
-        expandedContainer.isHidden = true
+        dateTimePicker.addTarget(self, action: #selector(dateTimeChanged(_:)), for: .valueChanged)
         
-        datePicker.isHidden = true
-
-        contentView.addSubview(iconView)
-        contentView.addSubview(titleLabel)
-        contentView.addSubview(toggle)
-        contentView.addSubview(separator)
-        contentView.addSubview(expandedContainer)
-        expandedContainer.addSubview(datePicker)
+        containerView.addSubview(iconView)
+        containerView.addSubview(headerStackView)
+        containerView.addSubview(toggle)
+        containerView.addSubview(separator)
+        
+        contentView.addSubview(containerView)
+        contentView.addSubview(dateTimePicker)
     }
     
     private func setupLayout() {
         NSLayoutConstraint.activate([
-            iconView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            iconView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
+            iconView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
             iconView.widthAnchor.constraint(equalToConstant: 22),
             iconView.heightAnchor.constraint(equalToConstant: 22),
-
-            titleLabel.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 12),
-            titleLabel.centerYAnchor.constraint(equalTo: iconView.centerYAnchor),
-            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: toggle.leadingAnchor, constant: -12),
-
-            toggle.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            toggle.centerYAnchor.constraint(equalTo: iconView.centerYAnchor),
+            iconView.centerYAnchor.constraint(equalTo: headerStackView.centerYAnchor),
             
-            // Separator under header
-            separator.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 50),
-            separator.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            separator.topAnchor.constraint(equalTo: iconView.bottomAnchor, constant: 16),
+            headerStackView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
+            headerStackView.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 12),
+            headerStackView.trailingAnchor.constraint(lessThanOrEqualTo: toggle.leadingAnchor, constant: -24),
+            headerStackView.bottomAnchor.constraint(lessThanOrEqualTo: containerView.bottomAnchor, constant: -12),
+            
+            toggle.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+            toggle.centerYAnchor.constraint(equalTo: headerStackView.centerYAnchor),
+            
+            separator.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 50),
+            separator.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+            separator.topAnchor.constraint(equalTo: headerStackView.bottomAnchor, constant: 12),
             separator.heightAnchor.constraint(equalToConstant: 0.7),
-
-            // Expanded container under separator
-            expandedContainer.topAnchor.constraint(equalTo: separator.bottomAnchor, constant: 0),
-            expandedContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
-            expandedContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12),
-            expandedContainer.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: 0),
-
-            // Date picker fills expanded container
-            datePicker.topAnchor.constraint(equalTo: expandedContainer.topAnchor),
-            datePicker.leadingAnchor.constraint(equalTo: expandedContainer.leadingAnchor),
-            datePicker.trailingAnchor.constraint(equalTo: expandedContainer.trailingAnchor),
-            datePicker.bottomAnchor.constraint(equalTo: expandedContainer.bottomAnchor),
+            
+            containerView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            containerView.bottomAnchor.constraint(equalTo: dateTimePicker.topAnchor),
+            
+            dateTimePicker.topAnchor.constraint(equalTo: containerView.bottomAnchor),
+            dateTimePicker.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            dateTimePicker.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            dateTimePicker.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
         ])
         
-        // Collapse expanded container by default so the cell doesn't reserve space when hidden
-        collapsedExpandedHeightConstraint = expandedContainer.heightAnchor.constraint(equalToConstant: 0)
-        collapsedExpandedHeightConstraint.isActive = true
+        dateTimePickerHeight = dateTimePicker.heightAnchor.constraint(equalToConstant: 0)
+        dateTimePickerHeight?.isActive = true
     }
     
-    func configure(icon systemName: String, title: String, isOn: Bool, showsSeparator: Bool = false) {
-        iconView.image = UIImage(systemName: systemName)
-        titleLabel.text = title
-        toggle.isOn = isOn
-        separator.isHidden = !showsSeparator
+    func configure(icon systemName: String, title: String, isOn: Bool, mode: Mode, selectedDate: Date) {
+        self.iconView.image = UIImage(systemName: systemName)
+        self.titleLabel.text = title
+        self.toggle.isOn = isOn
+        
+        self.mode = mode
+        self.subtitleLabel.isHidden = !isOn
+        dateTimePicker.date = roundedUpToHour(Date())
+        
+        switch mode {
+        case .date:
+            self.selectedDate = roundedUpToHour(selectedDate)
+            dateTimePicker.datePickerMode = .date
+            dateTimePicker.preferredDatePickerStyle = .inline
+            subtitleLabel.text = isOn ? formattedSubtitle(for: self.selectedDate , mode: self.mode) : nil
+        case .time:
+            self.selectedTime = roundedUpToHour(selectedDate)
+            dateTimePicker.datePickerMode = .time
+            dateTimePicker.preferredDatePickerStyle = .wheels
+            subtitleLabel.text = isOn ? formattedSubtitle(for: self.selectedTime , mode: self.mode) : nil
+        }
     }
     
     @objc private func toggleChanged(_ sender: UISwitch) {
-        onToggleChanged?(sender.isOn)
+        let selectedDateTime = combineDateTime(date: self.selectedDate, time: self.selectedTime)
+        onToggleChanged?(sender.isOn, selectedDateTime ?? Date())
     }
     
-    func setExpanded(_ expanded: Bool, animated: Bool = false) {
-        let changes = {
-            self.collapsedExpandedHeightConstraint.isActive = !expanded
-            self.expandedContainer.isHidden = !expanded
-            self.datePicker.isHidden = !expanded
-            self.layoutIfNeeded()
+    @objc private func dateTimeChanged(_ sender: UIDatePicker) {
+        switch mode {
+        case .date:
+            self.selectedDate = sender.date
+            self.subtitleLabel.text = formattedSubtitle(for: self.selectedDate, mode: self.mode)
+        case .time:
+            self.selectedTime = sender.date
+            self.subtitleLabel.text = formattedSubtitle(for: self.selectedTime, mode: self.mode)
         }
-        if animated {
-            UIView.animate(withDuration: 0.25) {
-                changes()
-            }
-        } else {
-            changes()
-        }
+        let selectedDateTime = combineDateTime(date: self.selectedDate, time: self.selectedTime)
+        onDateTimeChanged?(selectedDateTime ?? Date())
+        self.containerView.layoutIfNeeded()
+    }
+    
+    func setExpanded(_ expanded: Bool) {
+        self.dateTimePickerHeight?.isActive = !expanded
+        
+        let showLine = UIEdgeInsets(top: 0, left: 20, bottom: 0, right: 18)
+        let hideLine: UIEdgeInsets = UIEdgeInsets(top: 0, left: .greatestFiniteMagnitude, bottom: 0, right: 0)
+        separatorInset = expanded ? showLine : hideLine
     }
 }
+

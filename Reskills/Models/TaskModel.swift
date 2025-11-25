@@ -10,5 +10,6 @@ struct TaskModel {
 //    let id: UUID
     var title: String
     var notes: String?
-    var isCompleted: Bool
+    var URL: URL?
+    var dateSelected: Date = Date()
 }

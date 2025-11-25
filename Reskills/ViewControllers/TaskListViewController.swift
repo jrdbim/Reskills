@@ -62,17 +62,17 @@ class TaskListViewController: UIViewController {
             emptyStateView.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
         
-        tasks = [
-            TaskModel(title: "Buy groceries and some other very long title to test wrapping",
-                      notes: "Milk, eggs, bread, and fruits",
-                      isCompleted: false),
-            TaskModel(title: "Read a book",
-                      notes: "At least 20 pages today",
-                      isCompleted: true),
-            TaskModel(title: "Workout",
-                      notes: nil,
-                      isCompleted: false)
-        ]
+//        tasks = [
+//            TaskModel(title: "Buy groceries and some other very long title to test wrapping",
+//                      notes: "Milk, eggs, bread, and fruits",
+//                      isCompleted: false),
+//            TaskModel(title: "Read a book",
+//                      notes: "At least 20 pages today",
+//                      isCompleted: true),
+//            TaskModel(title: "Workout",
+//                      notes: nil,
+//                      isCompleted: false)
+//        ]
         
         checkEmptyState()
         tasksTableView.reloadData()
@@ -107,7 +107,7 @@ extension TaskListViewController: UITableViewDataSource {
             return UITableViewCell()
         }
         let item = tasks[indexPath.row]
-        cell.configure(title: item.title, subtitle: item.notes, isCompleted: item.isCompleted)
+//        cell.configure(title: item.title, subtitle: item.notes, isCompleted: item.isCompleted)
         cell.accessoryType = .disclosureIndicator
         cell.selectionStyle = .none
         return cell
@@ -128,7 +128,7 @@ extension TaskListViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         // Toggle completion state
-        self.tasks[indexPath.row].isCompleted.toggle()
+//        self.tasks[indexPath.row].isCompleted.toggle()
         // Haptic feedback
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         // Reload only this row to reflect the new state
